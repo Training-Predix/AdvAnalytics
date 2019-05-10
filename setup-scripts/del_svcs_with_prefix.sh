@@ -55,7 +55,7 @@ echo "Continuing with delete..."
 
 # Remove all multiple spaces from service_lines
 
-service_lines=$(echo "$service_lines" | sed -re 's,\s+, ,g')
+service_lines=$(echo "$service_lines" | sed -E 's,\s+, ,g')
 services_to_delete=$(echo "$service_lines" | cut -d ' ' -f 1)
 
 # Echo the services that we will work on
@@ -68,7 +68,7 @@ printf '%s\n' "$service_lines" | (
 
 while IFS= read -r service_to_delete
 do
-    service_to_delete=$(echo "$service_to_delete" | sed -r 's/ [a-z]+ [a-z]+$//') 
+    service_to_delete=$(echo "$service_to_delete" | sed -E 's/ [a-z]+ [a-z]+$//') 
     service_name=$(echo $service_to_delete | cut -d ' ' -f 1)
     bound_apps=$(echo "$service_to_delete" | cut -d ' ' -f 4- | sed 's/,//g')
 
