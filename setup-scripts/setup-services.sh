@@ -33,13 +33,22 @@ main() {
 
 loginCf()
 {
-	read -p "Enter the Org name: " org_name
-	read -p "Enter the Space name: " space_name
-	read -p "Enter the Username: " user_name
-	read -s -p "Enter the Password: " user_password
-	echo -e "\n\nLogging into Cloud Foundry..."
-	cf login -a https://api.system.aws-usw02-pr.ice.predix.io -u $user_name -p $user_password -o $org_name -s $space_name || sadKitty
-
+        printf "\n\n%s\n" "Logging into Cloud Foundry..."
+        cf login -a https://api.system.aws-usw02-pr.ice.predix.io || sadKitty
+        echo
+        echo "** Check the Org and Space below:"
+        cf target | grep -v '^api '
+        printf "Are these correct(y/n)? "
+        old_stty_cfg=$(stty -g)
+        stty raw -echo
+        answer=$( while ! head -c 1 | grep -i '[ny]' ;do true ;done )
+        stty $old_stty_cfg
+        if echo "$answer" | grep -ivq "^y" ;then
+                echo
+                echo "Please run this script again and enter the correct"
+                echo "login information from your instructor."
+                exit 1
+        fi
 }
 
 checkPrereq()
@@ -74,7 +83,7 @@ verifyCommand()
 }
 
 deployingApp() {
-	read -p "Enter a prefix for the services name:" prefix
+	read -p "Enter a prefix for the services name: " prefix
 	cd hello-predix/
 	app_name=$prefix-hello-predix
 	echo $app_name
@@ -128,7 +137,7 @@ createClient() {
 		uaac target $uaa_uri --skip-ssl-validation && uaac token client get admin -s admin_secret || sadKitty
 		echo ""
 		clientname=$prefix-client
-		uaac client add $clientname -s secret --authorized_grant_types "authorization_code client_credentials password refresh_token" --autoapprove "openid scim.me" --authorities "clients.read clients.write scim.read scim.write" --redirect_uri 'https://localhost:5000' 
+		uaac client add $clientname -s secret --authorized_grant_types "authorization_code client_credentials password refresh_token" --autoapprove "openid scim.me" --authorities "clients.read clients.write scim.read scim.write" --redirect_uri 'https://localhost:5000'
 		# Original also added this to end of above line: base64encoded=`echo -n $clientname:secret|base64`
 }
 
@@ -151,7 +160,7 @@ createAsset() {
 	echo ""
 	cf bs $app_name $assetname || sadKitty
 	asset_zone=`cf env $app_name|grep predix-asset|grep '"oauth-scope": "'|sed s/\"oauth-scope\":\ // |sed s/\"//g|sed 's/ //g'` || sadKitty
-	predix_asset_zone_id=`echo "$asset_zone"|sed -e "s/\predix-asset.zones.//"|sed "s/\.user//g"` || sadKitty 
+	predix_asset_zone_id=`echo "$asset_zone"|sed -e "s/\predix-asset.zones.//"|sed "s/\.user//g"` || sadKitty
 	echo $predix_asset_zone_id
 }
 
@@ -159,17 +168,18 @@ createTimeseries() {
 	echo ""
 	echo "Creating Timeseries service..."
 	timeseriesname=$prefix-timeseries
-	cf create-service predix-timeseries Free $timeseriesname -c '{"trustedIssuerIds":["'$uaa_uri'/oauth/token"]}' || sadKitty
+	cf create-service predix-timeseries Tiered $timeseriesname -c '{"trustedIssuerIds":["'$uaa_uri'/oauth/token"]}' || sadKitty
 	echo ""
 	cf bs $app_name $timeseriesname || sadKitty
-	timeseries_zone=`cf env $app_name|grep zone-http-header-value|sed 'n;d'|sed s/\"zone-http-header-value\":\ // |sed s/\"//g |sed s/\,//g|sed 's/ //g'` || sadKitty
+	timeseries_zone=`cf env $app_name|grep zone-http-header-value|sed 'n;d'|sed 'n;d'|sed s/\"zone-http-header-value\":\ // |sed s/\"//g |sed s/\,//g|sed 's/ //g'` || sadKitty
 }
 
 createAnalyticsFramework() {
 	echo ""
 	echo "Creating Analytics Framework service..."
+	echo "syntax: "
 	analyticsname=$prefix-analytics-framework
-	cf create-service predix-analytics-framework Free $analyticsname -c '{"trustedIssuerIds":["'$uaa_uri'/oauth/token"],"runtimeClientId":"'$prefix'-client","runtimeClientSecret":"secret","predixTimeseriesZoneId":"'$timeseries_zone'","predixAssetZoneId":"'$predix_asset_zone_id'","uiDomainPrefix":"'$prefix'-predixUi", "uiClientId":"'$prefix'-client","uiClientSecret":"secret"}' || sadKitty
+	cf create-service predix-analytics-framework Tiered $analyticsname -c '{"trustedIssuerIds":["'$uaa_uri'/oauth/token"], "runtimeClientId":"'$prefix'-client","runtimeClientSecret":"secret", "predixTimeseriesZoneId":"'$timeseries_zone'", "predixAssetZoneId":"'$predix_asset_zone_id'","uiDomainPrefix":"'$prefix'-predixUi", "uiClientId":"'$prefix'-client","uiClientSecret":"secret"}' || sadKitty
 	echo ""
 	cf bs $app_name $analyticsname
 	analytics_zone=`cf env $app_name|grep analytics.zone|sed s/\"zone-oauth-scope\":\ // |sed s/\"//g|sed 's/ //g'` || sadKitty
