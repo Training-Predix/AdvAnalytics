@@ -184,13 +184,15 @@ createAsset() {
 #	cf create-service predix-asset Free $assetname -c '{"trustedIssuerIds":["'$uaa_uri'/oauth/token"]}' || sadKitty
 #	echo ""
 #	cf bs $app_name $assetname || sadKitty
-#	asset_zone=`cf env $app_name|grep predix-asset|grep '"oauth-scope": "'|sed s/\"oauth-scope\":\ // |sed s/\"//g|sed 's/ //g'` || sadKitty
+#	asset_zone=$(cf env $app_name|grep predix-asset|grep '"oauth-scope: "'|sed s/\"oauth-scope\":\ // |sed s/\"//g|sed 's/ //g') || sadKitty
 #	predix_asset_zone_id=`echo "$asset_zone"|sed -e "s/\predix-asset.zones.//"|sed "s/\.user//g"` || sadKitty
 #	echo $predix_asset_zone_id
-  # For this training we are using the hard-coded asset instance below
-	# This is maintianed by trainer Anna Schaller anna.schaller@ge.com.
+# For this training we are using the hard-coded asset instance below
+# This is maintianed by trainer Anna Schaller anna.schaller@ge.com.
+
   predix_asset_zone_id="cc63a1e3-7137-4e48-a2e5-ce68c2fb47ea"
   echo "Using existing asset service: $predix_asset_zone_id"
+  assetname=ams-asset
 }
 
 createTimeseries() {
@@ -227,7 +229,7 @@ updateClient() {
 
 createUsers() {
 	[ 1 -eq 1 ]
-	# Don't need to do this b/c we are sharing one UAA and its already set up.
+	# Dont need to do this b/c we are sharing one UAA and its already set up
 	#echo ""
 	#echo "Creating users..."
 	#uaac user add app_admin --emails app_admin@gegrctest.com -p APP_admin_111 || sadKitty
@@ -269,7 +271,7 @@ assignUsersToGroups() {
 welcome()
 {
 	cat <<"EOT"
-	_____                 _  _     _______           _         _
+   _____                 _  _     _______           _         _
   |  __ \               | |(_)   |__   __|         (_)       (_)
   | |__) |_ __  ___   __| | _ __  __| | _ __  __ _  _  _ __   _  _ __    __ _
   |  ___/| '__|/ _ \ / _` || |\ \/ /| || '__|/ _` || || '_ \ | || '_ \  / _` |
@@ -305,7 +307,6 @@ Hello Predix App Name      :  "$app_name"
 UAA Name                   :  "$uaaname"
 UAA URI                    :  "$uaa_uri"
 UAA Zone Id		   :  "$uaa_zone"
-UAA Admin Secret           :  admin_secret
 Client Name                :  "$clientname"
 Client Secret              :  secret
 Asset Name                 :  "$assetname"
