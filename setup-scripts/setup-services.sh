@@ -51,7 +51,6 @@ loginCf()
         fi
 }
 
-
 checkPrereq()
 {
   {
@@ -89,50 +88,41 @@ deployingApp() {
 	app_name=$prefix-hello-predix
 	echo $app_name
 	cf push $app_name --random-route || sadKitty
-	cd ..
 }
 
 createUAA() {
-#	cd ..
-#	echo ""
-#	echo "Creating UAA service..."
-#	uaaname=$prefix-uaa
-#	cf create-service predix-uaa Free $uaaname -c '{"adminClientSecret":"admin_secret"}' || sadKitty
-#	echo ""
-#	echo "Binding $app_name app to $uaaname..."
-#	cf bs $app_name $uaaname || sadKitty
-
-  uaaname=ams-uaa
+	cd ..
+	echo ""
+	echo "Creating UAA service..."
+	uaaname=$prefix-uaa
+	cf create-service predix-uaa Free $uaaname -c '{"adminClientSecret":"admin_secret"}' || sadKitty
+	echo ""
+	echo "Binding $app_name app to $uaaname..."
+	cf bs $app_name $uaaname || sadKitty
 }
 
 getUAAEndpoint() {
-#	  echo ""
-#	  echo "Getting UAA endpoint..."
-#	  {
-#		 	 env_cf_app=$(cf env $app_name)
-#			 uaa_uri=`echo $env_cf_app | egrep -o '"uri": "https?://[^ ]+"' | grep predix-uaa | sed s/\"uri\":\ // | sed s/\"//g`
-#
-#			 if [[ $uaa_uri == *"FAILED"* ]];
-#			 then
-#			   echo "Unable to find UAA endpoint for you!"
-#			   sadKitty
-#			   exit -1
-#			 fi
-#
-#			 uaa_zone=`echo $uaa_uri | sed  's/https:\/\/\([0-9a-z][0-9a-z-]*\)\..*/\1/'`
-#
-#			 if [[ "${uaa_zone}X" == "X" ]];
-#			 then
-#			   echo "Unable to find UAA zone from URI:${uaa_uri}!"
-#			   sadKitty
-#			   exit -1
-#			 fi
-#
-    {
-    # For this training we are using the hard-coded UAA instance below
-    # This is maintianed by trainer Anna Schaller anna.schaller@ge.com.
-      uaa_uri='https://0a8f1e29-2147-4694-942e-1d4d15dda917.predix-uaa.run.aws-usw02-pr.ice.predix.io'
-			uaa_zone='0a8f1e29-2147-4694-942e-1d4d15dda917'
+	  echo ""
+	  echo "Getting UAA endpoint..."
+	  {
+		 	 env_cf_app=$(cf env $app_name)
+			 uaa_uri=`echo $env_cf_app | egrep -o '"uri": "https?://[^ ]+"' | grep predix-uaa | sed s/\"uri\":\ // | sed s/\"//g`
+
+			 if [[ $uaa_uri == *"FAILED"* ]];
+			 then
+			   echo "Unable to find UAA endpoint for you!"
+			   sadKitty
+			   exit -1
+			 fi
+
+			 uaa_zone=`echo $uaa_uri | sed  's/https:\/\/\([0-9a-z][0-9a-z-]*\)\..*/\1/'`
+
+			 if [[ "${uaa_zone}X" == "X" ]];
+			 then
+			   echo "Unable to find UAA zone from URI:${uaa_uri}!"
+			   sadKitty
+			   exit -1
+			 fi
 
 			 echo "UAA Zone ID: $uaa_zone"
 		} ||
@@ -147,23 +137,8 @@ createClient() {
 		uaac target $uaa_uri --skip-ssl-validation && uaac token client get admin -s admin_secret || sadKitty
 		echo ""
 		clientname=$prefix-client
-#		uaac client add $clientname -s secret --authorized_grant_types "authorization_code client_credentials password refresh_token" --autoapprove "openid scim.me" --authorities "clients.read clients.write scim.read scim.write" --redirect_uri 'https://localhost:5000'
-
-  set +e
-  result=$(uaac client add $clientname -s secret --authorized_grant_types "authorization_code client_credentials password refresh_token" --autoapprove "openid scim.me" --authorities "clients.read clients.write scim.read scim.write" --redirect_uri 'https://localhost:5000' )
-	if [ $? -ne 0 ] ; then
-		set -e
-	  if $(printf "$result" | grep -q "Client already exists") ; then
-	    echo "INFO: Client $clientname already exists in UAA.  Assuming this is Ok.  Continuing..."
-	  else
-	    echo "Error adding client $clientname to UAA.  The error message was:"
-	      printf "$result"
-	      exit 1
-	  fi
-	else
-		echo "$result"
-	fi
-	set -e  #Just in case we didn't get to it previously
+		uaac client add $clientname -s secret --authorized_grant_types "authorization_code client_credentials password refresh_token" --autoapprove "openid scim.me" --authorities "clients.read clients.write scim.read scim.write" --redirect_uri 'https://localhost:5000'
+		# Original also added this to end of above line: base64encoded=`echo -n $clientname:secret|base64`
 }
 
 createACS() {
@@ -178,21 +153,15 @@ createACS() {
 }
 
 createAsset() {
-#	echo ""
-#	echo "Creating Asset service..."
-#	assetname=$prefix-asset
-#	cf create-service predix-asset Free $assetname -c '{"trustedIssuerIds":["'$uaa_uri'/oauth/token"]}' || sadKitty
-#	echo ""
-#	cf bs $app_name $assetname || sadKitty
-#	asset_zone=$(cf env $app_name|grep predix-asset|grep '"oauth-scope: "'|sed s/\"oauth-scope\":\ // |sed s/\"//g|sed 's/ //g') || sadKitty
-#	predix_asset_zone_id=`echo "$asset_zone"|sed -e "s/\predix-asset.zones.//"|sed "s/\.user//g"` || sadKitty
-#	echo $predix_asset_zone_id
-# For this training we are using the hard-coded asset instance below
-# This is maintianed by trainer Anna Schaller anna.schaller@ge.com.
-
-  predix_asset_zone_id="cc63a1e3-7137-4e48-a2e5-ce68c2fb47ea"
-  echo "Using existing asset service: $predix_asset_zone_id"
-  assetname=ams-asset
+	echo ""
+	echo "Creating Asset service..."
+	assetname=$prefix-asset
+	cf create-service predix-asset Free $assetname -c '{"trustedIssuerIds":["'$uaa_uri'/oauth/token"]}' || sadKitty
+	echo ""
+	cf bs $app_name $assetname || sadKitty
+	asset_zone=`cf env $app_name|grep predix-asset|grep '"oauth-scope": "'|sed s/\"oauth-scope\":\ // |sed s/\"//g|sed 's/ //g'` || sadKitty
+	predix_asset_zone_id=`echo "$asset_zone"|sed -e "s/\predix-asset.zones.//"|sed "s/\.user//g"` || sadKitty
+	echo $predix_asset_zone_id
 }
 
 createTimeseries() {
@@ -228,20 +197,17 @@ updateClient() {
 }
 
 createUsers() {
-	[ 1 -eq 1 ]
-	# Dont need to do this b/c we are sharing one UAA and its already set up
-	#echo ""
-	#echo "Creating users..."
-	#uaac user add app_admin --emails app_admin@gegrctest.com -p APP_admin_111 || sadKitty
-	#uaac user add app_user --emails app_user@gegrctest.com -p APP_user_111 || sadKitty
+	echo ""
+	echo "Creating users..."
+	uaac user add app_admin --emails app_admin@gegrctest.com -p APP_admin_111 || sadKitty
+	uaac user add app_user --emails app_user@gegrctest.com -p APP_user_111 || sadKitty
 }
 
 createGroups() {
 	echo ""
 	echo "Creating groups..."
 	uaac group add "$acs_zone"
-  # One shared asset instance, user group already created
-  #	uaac group add "$asset_zone"
+	uaac group add "$asset_zone"
 	uaac group add "timeseries.zones.$timeseries_zone.user"
 	uaac group add "timeseries.zones.$timeseries_zone.query"
 	uaac group add "timeseries.zones.$timeseries_zone.ingest"
@@ -252,14 +218,14 @@ assignUsersToGroups() {
 	echo ""
 	echo "Assigning users to groups..."
 	uaac member add "$acs_zone" app_admin
-#	uaac member add "$asset_zone" app_admin
+	uaac member add "$asset_zone" app_admin
 	uaac member add "timeseries.zones.$timeseries_zone.user" app_admin
 	uaac member add "timeseries.zones.$timeseries_zone.query" app_admin
 	uaac member add "timeseries.zones.$timeseries_zone.ingest" app_admin
 	uaac member add "$analytics_zone" app_admin
 
 	uaac member add "$acs_zone" app_user
-#	uaac member add "$asset_zone" app_user
+	uaac member add "$asset_zone" app_user
 	uaac member add "timeseries.zones.$timeseries_zone.user" app_user
 	uaac member add "timeseries.zones.$timeseries_zone.query" app_user
 	uaac member add "timeseries.zones.$timeseries_zone.ingest" app_user
@@ -271,7 +237,7 @@ assignUsersToGroups() {
 welcome()
 {
 	cat <<"EOT"
-   _____                 _  _     _______           _         _
+	_____                 _  _     _______           _         _
   |  __ \               | |(_)   |__   __|         (_)       (_)
   | |__) |_ __  ___   __| | _ __  __| | _ __  __ _  _  _ __   _  _ __    __ _
   |  ___/| '__|/ _ \ / _` || |\ \/ /| || '__|/ _` || || '_ \ | || '_ \  / _` |
@@ -307,6 +273,7 @@ Hello Predix App Name      :  "$app_name"
 UAA Name                   :  "$uaaname"
 UAA URI                    :  "$uaa_uri"
 UAA Zone Id		   :  "$uaa_zone"
+UAA Admin Secret           :  admin_secret
 Client Name                :  "$clientname"
 Client Secret              :  secret
 Asset Name                 :  "$assetname"
